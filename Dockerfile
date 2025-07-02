@@ -1,4 +1,4 @@
-# Xinference GPU Dockerfile (amd64) - Ubuntu base with manual CUDA
+# Xinference GPU Dockerfile (arm64 native for T4G)
 FROM ubuntu:20.04
 
 # 環境変数の設定
