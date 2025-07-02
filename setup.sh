@@ -2,7 +2,18 @@
 
 set -e
 
-echo "🚀 Xinference GPU Docker セットアップ開始"
+echo "🚀 Xinference GPU Docker セットアップ開始（T4G GPU対応）"
+
+# T4G GPU環境確認
+echo "🔧 T4G GPU環境確認中..."
+if command -v nvcc &> /dev/null; then
+    echo "✅ CUDA が検出されました:"
+    nvcc --version
+    echo ""
+else
+    echo "❌ CUDA が検出されません。CUDA 12.9がインストールされていることを確認してください。"
+    exit 1
+fi
 
 # 必要なディレクトリの作成
 echo "📁 ディレクトリ作成中..."
@@ -45,16 +56,28 @@ else
     echo "✅ NVIDIA Container Toolkitは既にインストールされています"
 fi
 
-# GPU確認
-echo "🖥️  GPU確認中..."
+# T4G GPU確認
+echo "🖥️  T4G GPU確認中..."
 nvidia-smi
+echo ""
 
-# Dockerイメージの構築（軽量になりました）
-echo "🐳 Dockerイメージ構築中..."
-echo "   ℹ️  ベースイメージのダウンロードのみ行います"
+# CUDAパス確認
+echo "📚 CUDA インストール確認..."
+if [ -d "/usr/local/cuda" ]; then
+    echo "✅ CUDA インストールパス: /usr/local/cuda"
+    ls -la /usr/local/cuda/bin/nvcc
+else
+    echo "❌ /usr/local/cuda が見つかりません"
+    echo "CUDA 12.9のインストールパスを確認してください"
+    exit 1
+fi
+
+# Dockerイメージの構築（ARM64ネイティブ）
+echo "🐳 ARM64 Dockerイメージ構築中..."
+echo "   ℹ️  T4G GPU用のARM64ネイティブイメージを構築します"
 docker compose build
 
-echo "🎉 セットアップ完了！"
+echo "🎉 T4G GPU環境セットアップ完了！"
 echo ""
 echo "🚀 Xinferenceサーバーを起動するには:"
 echo "   docker compose up -d"
@@ -62,11 +85,17 @@ echo ""
 echo "📊 初回起動時のログを確認するには:"
 echo "   docker compose logs -f xinference"
 echo ""
-echo "ℹ️  初回起動時はパッケージのインストールのため数分かかります"
+echo "ℹ️  初回起動時は以下の処理のため数分かかります:"
+echo "   - ARM64用パッケージのインストール"
+echo "   - PyTorch（CUDA 12.x対応）のインストール"
+echo "   - CUDA環境の設定"
 echo "   進行状況はログで確認できます"
 echo ""
 echo "🌐 サーバーへのアクセス:"
 echo "   http://localhost:9997"
+echo ""
+echo "🔧 CUDA動作確認:"
+echo "   起動後、ログで 'CUDA available: True' が表示されることを確認してください"
 echo ""
 echo "🛑 サーバーを停止するには:"
 echo "   docker compose down"
