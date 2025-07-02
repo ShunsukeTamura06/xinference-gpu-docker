@@ -28,14 +28,14 @@ chmod +x setup.sh
 ### 3. Xinferenceサーバーの起動
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### 4. 動作確認
 
 ```bash
 # ログの確認
-docker-compose logs -f xinference
+docker compose logs -f xinference
 
 # ヘルスチェック
 curl http://localhost:9997/health
@@ -141,7 +141,7 @@ docker run --rm --gpus all nvidia/cuda:11.8-base-ubuntu20.04 nvidia-smi
 
 ```bash
 # 現在のメモリ使用量確認
-docker stats xinference-gpu-docker_xinference_1
+docker stats xinference-gpu-docker-xinference-1
 ```
 
 ### arm64プラットフォームエラー
@@ -190,12 +190,12 @@ environment:
 
 | コマンド | 説明 |
 |---------|------|
-| `docker-compose up -d` | サーバー起動（バックグラウンド） |
-| `docker-compose down` | サーバー停止 |
-| `docker-compose logs -f` | ログリアルタイム表示 |
-| `docker-compose ps` | コンテナ状態確認 |
-| `docker-compose restart` | サーバー再起動 |
-| `docker-compose pull` | イメージ更新 |
+| `docker compose up -d` | サーバー起動（バックグラウンド） |
+| `docker compose down` | サーバー停止 |
+| `docker compose logs -f` | ログリアルタイム表示 |
+| `docker compose ps` | コンテナ状態確認 |
+| `docker compose restart` | サーバー再起動 |
+| `docker compose pull` | イメージ更新 |
 
 ## 🆘 サポート
 
