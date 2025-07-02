@@ -6,13 +6,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV CUDA_VISIBLE_DEVICES=0
 
-# プロキシ設定（ビルド時に渡される）
-ARG HTTP_PROXY=http://hn02-outbound.gm.internal:8080
-ARG HTTPS_PROXY=http://hn02-outbound.gm.internal:8080
-
-# apt用プロキシ設定
-RUN echo "Acquire::http::Proxy \"${HTTP_PROXY}\";" > /etc/apt/apt.conf.d/01proxy
-RUN echo "Acquire::https::Proxy \"${HTTPS_PROXY}\";" >> /etc/apt/apt.conf.d/01proxy
+# プロキシ設定（環境変数で設定）
+ENV HTTP_PROXY=http://hn02-outbound.gm.internal:8080
+ENV HTTPS_PROXY=http://hn02-outbound.gm.internal:8080
+ENV http_proxy=http://hn02-outbound.gm.internal:8080
+ENV https_proxy=http://hn02-outbound.gm.internal:8080
 
 # 基本パッケージのインストール
 RUN apt-get update && apt-get install -y \
