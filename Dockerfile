@@ -6,14 +6,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV CUDA_VISIBLE_DEVICES=0
 
-# プロキシ設定（環境変数で設定）
-ENV HTTP_PROXY=http://hn02-outbound.gm.internal:8080
-ENV HTTPS_PROXY=http://hn02-outbound.gm.internal:8080
-ENV http_proxy=http://hn02-outbound.gm.internal:8080
-ENV https_proxy=http://hn02-outbound.gm.internal:8080
-
-# 基本パッケージのインストール
-RUN apt-get update && apt-get install -y \
+# 基本パッケージのインストール（プロキシ付き）
+RUN apt-get -o Acquire::http::Proxy="http://hn02-outbound.gm.internal:8080" \
+    -o Acquire::https::Proxy="http://hn02-outbound.gm.internal:8080" \
+    update && \
+    apt-get -o Acquire::http::Proxy="http://hn02-outbound.gm.internal:8080" \
+    -o Acquire::https::Proxy="http://hn02-outbound.gm.internal:8080" \
+    install -y \
     wget \
     curl \
     git \
@@ -22,6 +21,12 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
+
+# プロキシ設定（pip用）
+ENV HTTP_PROXY=http://hn02-outbound.gm.internal:8080
+ENV HTTPS_PROXY=http://hn02-outbound.gm.internal:8080
+ENV http_proxy=http://hn02-outbound.gm.internal:8080
+ENV https_proxy=http://hn02-outbound.gm.internal:8080
 
 # 作業ディレクトリの作成
 WORKDIR /app
