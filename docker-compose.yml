@@ -22,8 +22,9 @@ services:
       - HTTP_PROXY=http://hn02-outbound.gm.internal:8080
       - HTTPS_PROXY=http://hn02-outbound.gm.internal:8080
       - NO_PROXY=localhost,127.0.0.1,.internal,.local
+    entrypoint: ["/bin/bash"]
     command: >
-      bash -c "
+      -c "
         export http_proxy=http://hn02-outbound.gm.internal:8080 &&
         export https_proxy=http://hn02-outbound.gm.internal:8080 &&
         echo 'Acquire::http::Proxy \"http://hn02-outbound.gm.internal:8080\";' > /etc/apt/apt.conf.d/proxy.conf &&
