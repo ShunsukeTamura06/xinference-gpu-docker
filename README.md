@@ -1,6 +1,6 @@
 # Xinference GPU Docker Setup
 
-AWS GPU搭載インスタンス（arm64）上でDockerを使用してamd64環境でXinferenceサーバーをGPU対応で動作させるための設定です。
+AWS GPU搭載インスタンス（arm64）上でDockerを使用してamd64環境でXinferenceサーバーをGPU対応で動作させるための設定です。プロキシ環境での使用にも対応しています。
 
 ## 📋 前提条件
 
@@ -8,6 +8,31 @@ AWS GPU搭載インスタンス（arm64）上でDockerを使用してamd64環境
 - Ubuntu 20.04+ または Amazon Linux 2
 - Docker と Docker Compose がインストール済み
 - NVIDIA GPU ドライバーがインストール済み
+- 企業ネットワーク環境の場合はプロキシ設定
+
+## 🌐 プロキシ環境での設定
+
+企業ネットワーク環境の場合、以下のプロキシ設定を行ってください：
+
+### 1. 環境変数の設定
+
+```bash
+export HTTP_PROXY=http://hn02-outbound.gm.internal:8080
+export HTTPS_PROXY=http://hn02-outbound.gm.internal:8080
+export http_proxy=http://hn02-outbound.gm.internal:8080
+export https_proxy=http://hn02-outbound.gm.internal:8080
+export NO_PROXY=localhost,127.0.0.1,.internal,.local
+export no_proxy=localhost,127.0.0.1,.internal,.local
+```
+
+### 2. 永続化（オプション）
+
+```bash
+# ~/.bashrcに追加
+echo 'export HTTP_PROXY=http://hn02-outbound.gm.internal:8080' >> ~/.bashrc
+echo 'export HTTPS_PROXY=http://hn02-outbound.gm.internal:8080' >> ~/.bashrc
+source ~/.bashrc
+```
 
 ## 🚀 クイックスタート
 
@@ -18,20 +43,28 @@ git clone https://github.com/ShunsukeTamura06/xinference-gpu-docker.git
 cd xinference-gpu-docker
 ```
 
-### 2. セットアップスクリプトの実行
+### 2. プロキシ設定（企業環境の場合）
+
+```bash
+# プロキシ設定
+export HTTP_PROXY=http://hn02-outbound.gm.internal:8080
+export HTTPS_PROXY=http://hn02-outbound.gm.internal:8080
+```
+
+### 3. セットアップスクリプトの実行
 
 ```bash
 chmod +x setup.sh
 ./setup.sh
 ```
 
-### 3. Xinferenceサーバーの起動
+### 4. Xinferenceサーバーの起動
 
 ```bash
 docker compose up -d
 ```
 
-### 4. 動作確認
+### 5. 動作確認
 
 ```bash
 # ログの確認
@@ -45,8 +78,8 @@ curl http://localhost:9997/health
 
 ```
 xinference-gpu-docker/
-├── Dockerfile              # Xinference GPU用Dockerファイル
-├── docker-compose.yml      # Docker Compose設定
+├── Dockerfile              # Xinference GPU用Dockerファイル（プロキシ対応）
+├── docker-compose.yml      # Docker Compose設定（プロキシ設定含む）
 ├── setup.sh               # 環境セットアップスクリプト
 ├── models/                # モデルキャッシュディレクトリ
 ├── logs/                  # ログディレクトリ
@@ -54,6 +87,16 @@ xinference-gpu-docker/
 ```
 
 ## 🔧 設定のカスタマイズ
+
+### プロキシ設定の変更
+
+`docker-compose.yml`でプロキシURLを変更：
+
+```yaml
+args:
+  HTTP_PROXY: http://your-proxy:port
+  HTTPS_PROXY: http://your-proxy:port
+```
 
 ### ポート番号の変更
 
@@ -125,6 +168,29 @@ print(response)
 
 ## 🔍 トラブルシューティング
 
+### プロキシ関連エラー
+
+#### ビルド時にインターネット接続エラー
+
+```bash
+# プロキシ設定確認
+echo $HTTP_PROXY
+
+# 手動でプロキシ設定
+export HTTP_PROXY=http://hn02-outbound.gm.internal:8080
+export HTTPS_PROXY=http://hn02-outbound.gm.internal:8080
+
+# 再ビルド
+docker compose build --no-cache
+```
+
+#### apt-getエラー
+
+```bash
+# Docker内でapt用プロキシ設定確認
+docker compose build --progress=plain
+```
+
 ### GPU認識されない場合
 
 ```bash
@@ -132,7 +198,7 @@ print(response)
 nvidia-smi
 
 # NVIDIA Container Toolkit確認
-docker run --rm --gpus all nvidia/cuda:11.8-base-ubuntu20.04 nvidia-smi
+docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu20.04 nvidia-smi
 ```
 
 ### メモリ不足エラー
@@ -196,6 +262,7 @@ environment:
 | `docker compose ps` | コンテナ状態確認 |
 | `docker compose restart` | サーバー再起動 |
 | `docker compose pull` | イメージ更新 |
+| `docker compose build --no-cache` | 強制再ビルド |
 
 ## 🆘 サポート
 
