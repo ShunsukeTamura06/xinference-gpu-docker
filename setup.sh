@@ -39,18 +39,18 @@ nvidia-smi
 
 # Dockerコンテナの構築
 echo "🐳 Dockerイメージ構築中..."
-docker-compose build
+docker compose build
 
 echo "🎉 セットアップ完了！"
 echo ""
 echo "🚀 Xinferenceサーバーを起動するには:"
-echo "   docker-compose up -d"
+echo "   docker compose up -d"
 echo ""
 echo "📊 ログを確認するには:"
-echo "   docker-compose logs -f xinference"
+echo "   docker compose logs -f xinference"
 echo ""
 echo "🌐 サーバーへのアクセス:"
 echo "   http://localhost:9997"
 echo ""
 echo "🛑 サーバーを停止するには:"
-echo "   docker-compose down"
+echo "   docker compose down"
