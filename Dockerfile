@@ -1,5 +1,5 @@
-# Xinference GPU Dockerfile (amd64) - Simple base
-FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
+# Xinference GPU Dockerfile (amd64) - Ubuntu base with manual CUDA
+FROM ubuntu:20.04
 
 # 環境変数の設定
 ENV DEBIAN_FRONTEND=noninteractive
