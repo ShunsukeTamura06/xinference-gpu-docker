@@ -1,14 +1,20 @@
-# Xinference GPU Docker Setup
+# Xinference GPU Docker Setup for AWS T4G Instances
 
-AWS GPU搭載インスタンス（arm64）上でDockerを使用してamd64環境でXinferenceサーバーをGPU対応で動作させるための設定です。プロキシ環境での使用にも対応しています。
+AWS T4G GPU搭載インスタンス（ARM64）上でDockerを使用してXinferenceサーバーをGPU対応で動作させるための設定です。プロキシ環境での使用にも対応しています。
 
 ## 📋 前提条件
 
-- AWS GPU搭載インスタンス（例：g4dn.xlarge, p3.2xlarge など）
+- AWS T4G GPU搭載インスタンス（g5g.xlarge, g5g.2xlarge など）
 - Ubuntu 20.04+ または Amazon Linux 2
 - Docker と Docker Compose がインストール済み
-- NVIDIA GPU ドライバーがインストール済み
+- NVIDIA GPU ドライバーとCUDA 12.9がインストール済み
 - 企業ネットワーク環境の場合はプロキシ設定
+
+## 🔧 T4G GPU の特徴
+
+- **ARM64アーキテクチャ**: ネイティブARM64コンテナを使用
+- **CUDA 12.9対応**: ホストのCUDAインストールを活用
+- **高効率**: ARM64最適化されたPyTorchを使用
 
 ## 🌐 プロキシ環境での設定
 
@@ -25,15 +31,6 @@ export NO_PROXY=localhost,127.0.0.1,.internal,.local
 export no_proxy=localhost,127.0.0.1,.internal,.local
 ```
 
-### 2. 永続化（オプション）
-
-```bash
-# ~/.bashrcに追加
-echo 'export HTTP_PROXY=http://hn02-outbound.gm.internal:8080' >> ~/.bashrc
-echo 'export HTTPS_PROXY=http://hn02-outbound.gm.internal:8080' >> ~/.bashrc
-source ~/.bashrc
-```
-
 ## 🚀 クイックスタート
 
 ### 1. リポジトリのクローン
@@ -43,7 +40,20 @@ git clone https://github.com/ShunsukeTamura06/xinference-gpu-docker.git
 cd xinference-gpu-docker
 ```
 
-### 2. プロキシ設定（企業環境の場合）
+### 2. CUDA環境確認
+
+```bash
+# CUDA バージョン確認
+nvcc --version
+
+# GPU確認
+nvidia-smi
+
+# CUDA インストールパス確認
+ls -la /usr/local/cuda/
+```
+
+### 3. プロキシ設定（企業環境の場合）
 
 ```bash
 # プロキシ設定
@@ -51,35 +61,35 @@ export HTTP_PROXY=http://hn02-outbound.gm.internal:8080
 export HTTPS_PROXY=http://hn02-outbound.gm.internal:8080
 ```
 
-### 3. セットアップスクリプトの実行
+### 4. セットアップスクリプトの実行
 
 ```bash
 chmod +x setup.sh
 ./setup.sh
 ```
 
-### 4. Xinferenceサーバーの起動
+### 5. Xinferenceサーバーの起動
 
 ```bash
 docker compose up -d
 ```
 
-### 5. 動作確認
+### 6. 動作確認
 
 ```bash
 # ログの確認
 docker compose logs -f xinference
 
-# ヘルスチェック
-curl http://localhost:9997/health
+# GPU認識確認
+curl http://localhost:9997/v1/models
 ```
 
 ## 📁 ファイル構成
 
 ```
 xinference-gpu-docker/
-├── Dockerfile              # Xinference GPU用Dockerファイル（プロキシ対応）
-├── docker-compose.yml      # Docker Compose設定（プロキシ設定含む）
+├── Dockerfile              # ARM64用Dockerファイル
+├── docker-compose.yml      # T4G GPU対応設定
 ├── setup.sh               # 環境セットアップスクリプト
 ├── models/                # モデルキャッシュディレクトリ
 ├── logs/                  # ログディレクトリ
@@ -93,27 +103,18 @@ xinference-gpu-docker/
 `docker-compose.yml`でプロキシURLを変更：
 
 ```yaml
-args:
-  HTTP_PROXY: http://your-proxy:port
-  HTTPS_PROXY: http://your-proxy:port
-```
-
-### ポート番号の変更
-
-`docker-compose.yml`の`ports`セクションを編集：
-
-```yaml
-ports:
-  - "YOUR_PORT:9997"
-```
-
-### GPU設定の変更
-
-複数GPUを使用する場合、`docker-compose.yml`を編集：
-
-```yaml
 environment:
-  - CUDA_VISIBLE_DEVICES=0,1  # 使用するGPU番号
+  - HTTP_PROXY=http://your-proxy:port
+  - HTTPS_PROXY=http://your-proxy:port
+```
+
+### CUDA パスの変更
+
+ホストのCUDAインストールパスが異なる場合：
+
+```yaml
+volumes:
+  - /your/cuda/path:/usr/local/cuda:ro
 ```
 
 ### メモリ制限の設定
@@ -168,9 +169,31 @@ print(response)
 
 ## 🔍 トラブルシューティング
 
-### プロキシ関連エラー
+### T4G GPU特有の問題
 
-#### ビルド時にインターネット接続エラー
+#### CUDA認識されない場合
+
+```bash
+# ホストのCUDA確認
+nvcc --version
+ls -la /usr/local/cuda/
+
+# コンテナ内でCUDA確認
+docker compose exec xinference nvcc --version
+docker compose exec xinference python3 -c "import torch; print(torch.cuda.is_available())"
+```
+
+#### ARM64パッケージエラー
+
+```bash
+# ARM64用パッケージが正しくインストールされているか確認
+docker compose exec xinference uname -a
+docker compose exec xinference python3 -c "import torch; print(torch.__version__)"
+```
+
+### 一般的な問題
+
+#### プロキシ関連エラー
 
 ```bash
 # プロキシ設定確認
@@ -184,72 +207,36 @@ export HTTPS_PROXY=http://hn02-outbound.gm.internal:8080
 docker compose build --no-cache
 ```
 
-#### apt-getエラー
-
-```bash
-# Docker内でapt用プロキシ設定確認
-docker compose build --progress=plain
-```
-
-### GPU認識されない場合
-
-```bash
-# GPU確認
-nvidia-smi
-
-# NVIDIA Container Toolkit確認
-docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu20.04 nvidia-smi
-```
-
-### メモリ不足エラー
-
-モデルサイズを小さくするか、より大きなインスタンスタイプを使用：
+#### メモリ不足エラー
 
 ```bash
 # 現在のメモリ使用量確認
-docker stats xinference-gpu-docker-xinference-1
+docker stats xinference-gpu-server
 ```
 
-### arm64プラットフォームエラー
+## 📈 T4G GPU最適化
 
-`docker-compose.yml`で明示的にamd64を指定：
-
-```yaml
-platform: linux/amd64
-```
-
-### ポート衝突
-
-別のポートを使用：
-
-```yaml
-ports:
-  - "9998:9997"  # 9998ポートを使用
-```
-
-## 📈 パフォーマンス最適化
-
-### 1. SHMサイズの増加
-
-```yaml
-shm_size: '2g'
-```
-
-### 2. キャッシュボリュームの最適化
-
-SSDストレージの使用を推奨：
+### 1. ARM64最適化されたライブラリ使用
 
 ```yaml
 volumes:
-  - /mnt/ssd/models:/root/.xinference/cache
+  - /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu:ro
 ```
 
-### 3. 並列処理の設定
+### 2. CUDA 12.9活用
 
 ```yaml
 environment:
-  - OMP_NUM_THREADS=4
-  - XINFERENCE_MODEL_CACHE_SIZE=10
+  - CUDA_HOME=/usr/local/cuda
+  - LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+```
+
+### 3. T4G GPU推奨設定
+
+```yaml
+environment:
+  - CUDA_VISIBLE_DEVICES=0
+  - NVIDIA_VISIBLE_DEVICES=all
 ```
 
 ## 🛠️ コマンド一覧
@@ -261,7 +248,6 @@ environment:
 | `docker compose logs -f` | ログリアルタイム表示 |
 | `docker compose ps` | コンテナ状態確認 |
 | `docker compose restart` | サーバー再起動 |
-| `docker compose pull` | イメージ更新 |
 | `docker compose build --no-cache` | 強制再ビルド |
 
 ## 🆘 サポート
